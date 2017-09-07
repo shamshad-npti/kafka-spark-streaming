@@ -1,3 +1,7 @@
+"""
+A simple spark streaming processor to
+aggregate price by store id
+"""
 import argparse
 import json
 from pyspark import SparkConf, SparkContext
@@ -47,6 +51,12 @@ def _start_streaming(args):
     )
 
     # apply transformation
+    # 1. flatMap nested price information to [(store_id, price)]
+    # 2. reduce the price within the stream
+    # 3. update aggregated state with new price in stream
+    # 4. For printing only
+    #   a. convert entire stream to a list of tuple(store_id, price)
+    #   b. convert the list to json string
     aggregated_stream = dstream.flatMap(_extract_price)\
         .reduceByKey(lambda x, y: x + y)\
         .updateStateByKey(_aggregate_price)\
@@ -59,6 +69,9 @@ def _start_streaming(args):
     aggregated_stream.pprint()
 
     # set-up checkpoint
+    # save status in a file
+    # it can also be configured to save
+    # status in other storage
     streaming_context.checkpoint(".scc-checkpoint")
 
     # start streaming
@@ -77,7 +90,7 @@ def _main():
         "--batch_duration",
         help="batch duration in seconds",
         type=int,
-        default=5
+        default=30
     )
 
     parser.add_argument(

@@ -1,8 +1,12 @@
 Stream Processing of Sales Order
 ---
 
+The architechture of the application is very simple with minimal requirements. Spark streaming API has been used in combination with kafka to fetch data from a kafka topics in micro-batches every 30 seconds. We need to store the stream state (total sales price for each store) seen so far so that we can aggregate correctly. Spark streaming has builtin support to perform such operation and store the state automatically. Overall architechture of application is shown in following figure
 
-# How to Run the Application on a Single Node
+[![Architecture](https://drive.google.com/file/d/0BwqP43BQOIgXWEVGR3JBMF90UjA/view?usp=sharing)]
+
+How to Run the Application on a Single Node
+---
 
 1. Install java and scala
 

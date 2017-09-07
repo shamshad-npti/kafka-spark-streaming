@@ -1,3 +1,8 @@
+"""
+produce a dummy order receipt at a regular
+interval to simulate producer for the kafka
+topic
+"""
 import random
 import argparse
 import time

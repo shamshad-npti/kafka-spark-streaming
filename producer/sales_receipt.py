@@ -1,3 +1,6 @@
+"""
+SalesReceipt and ItemOrder model classes
+"""
 import json
 
 def _assign_with_type_check(obj, attr, value, type_info):
