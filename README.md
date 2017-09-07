@@ -81,7 +81,7 @@ export PYTHONPATH=$PYTHONPATH:`pwd`
 python producer/item_receipt_producer.py &
 ```
 
-7. **Start Spark Streaming Context**
+7. **Submit job to spark**
 
 ```bash
 ../spark-2.0.2/bin/spark-submit\
