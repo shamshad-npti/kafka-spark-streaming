@@ -3,6 +3,25 @@ Stream Processing of Sales Order
 
 The architechture of the application is very simple with minimal requirements. Spark streaming API has been used in combination with kafka to fetch data from a kafka topics in micro-batches every 30 seconds. We need to store the stream state (total sales price for each store) seen so far so that we can aggregate correctly. Spark streaming has builtin support to perform such operation and store the state automatically. Overall architechture of application is shown in following figure
 
+## Message delivery semantics
+* **At most once**:
+
+To ensure `at most once` delivery of the message 
+
+  1. Disable `spark.speculation` (by default it is disabled)
+  2. Set `spark.task.maxFailure` to 1
+  3. When a job dies start the job with kafka parameter `auto.offset.reset` set to largest
+
+* **At least once**: There are two methods –
+
+  1. Checkpoint the stream
+  2. Restart the job with `auto.offset.reset` set to `smallest` value
+
+* **Exactly once**
+
+  * Exactly once delivery required use of idempotent storage where id of each message processed would be stored
+
+To ensure the exactly once processing 
 ![Architecture](https://storage.googleapis.com/svg-store/diagram.jpg)
 
 ---
