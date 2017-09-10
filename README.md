@@ -19,9 +19,8 @@ To ensure `at most once` delivery of the message
 
 * **Exactly once**
 
-  * Exactly once delivery required use of idempotent storage where id of each message processed would be stored
+  * Exactly once processing can be achieved by using transactional database storage and commiting kafka topic offset to database. When processing start/restart offsets should be loaded from database and pass to `createDirectStream`
 
-To ensure the exactly once processing 
 ![Architecture](https://storage.googleapis.com/svg-store/diagram.jpg)
 
 ---
