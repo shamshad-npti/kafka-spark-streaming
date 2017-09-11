@@ -6,33 +6,15 @@ import argparse
 import json
 import threading
 from datetime import datetime
+from collections import defaultdict
 from pyspark import SparkConf, SparkContext, TaskContext
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils, TopicAndPartition
 from sqlalchemy.sql import text
 from sqlalchemy import create_engine
-from collections import defaultdict
 
 GROUP_ID = "sales-stream-processor"
 CHECKPOINT_PATH = ".scc-checkpoint"
-
-OFFSET_CREATE_TABLE_QUERY = """
-CREATE TABLE IF NOT EXISTS `offsets` (
-    `topic` VARCHAR(200) NOT NULL,
-    `partition` INT NOT NULL,
-    `offset` BIGINT,
-    PRIMARY KEY(`topic`, `partition`)
-) ENGINE=InnoDB
-"""
-
-SALES_CREATE_TABLE_QUERY = """
-CREATE TABLE IF NOT EXISTS `sales` (
-    `store_id` INT NOT NULL,
-    `date` DATE NOT NULL,
-    `total_sales_price` DOUBLE,
-    PRIMARY KEY(`store_id`, `date`)
-) ENGINE=InnoDB
-"""
 
 OFFSET_UPSERT_QEURY = """
 INSERT INTO `offsets` (`topic`, `partition`, `offset`) VALUES(:topic, :partition, :offset)
@@ -47,9 +29,31 @@ ON DUPLICATE KEY UPDATE `total_sales_price` = `total_sales_price` + :total_sales
 SELECT_SALES_QUERY = "SELECT `store_id`, `total_sales_price` FROM `sales` WHERE `date` = :date"
 SELECT_OFFSETS_QUERY = "SELECT `topic`, `partition`, `offset` FROM `offsets`"
 
-MYSQL_URL = None
 
-class MysqlSettings(object):
+class MysqlUtils(object):
+    """
+    utility classs for setting up and cleaning database
+    """
+    OFFSET_CREATE_TABLE_QUERY = """
+    CREATE TABLE IF NOT EXISTS `offsets` (
+        `topic` VARCHAR(200) NOT NULL,
+        `partition` INT NOT NULL,
+        `offset` BIGINT,
+        PRIMARY KEY(`topic`, `partition`)
+    ) ENGINE=InnoDB
+    """
+
+    SALES_CREATE_TABLE_QUERY = """
+    CREATE TABLE IF NOT EXISTS `sales` (
+        `store_id` INT NOT NULL,
+        `date` DATE NOT NULL,
+        `total_sales_price` DOUBLE,
+        PRIMARY KEY(`store_id`, `date`)
+    ) ENGINE=InnoDB
+    """
+
+    TABLES = ["offsets", "sales"]
+
     host = None
     port = None
     username = None
@@ -57,8 +61,14 @@ class MysqlSettings(object):
     database = None
 
     @classmethod
-    def url(cls):
-        return 'mysql://{username}:{password}@{host}:{port}/{database}'.format(
+    def url(cls, with_database=True):
+        """
+        get database connection url
+        """
+        conn_url = "mysql://{username}:{password}@{host}:{port}"
+        if with_database:
+            conn_url += '/{database}'
+        return conn_url.format(
             username=cls.username,
             password=cls.password,
             host=cls.host,
@@ -66,10 +76,39 @@ class MysqlSettings(object):
             database=cls.database
         )
 
+    @classmethod
+    def init(cls, clean=False):
+        """
+        initialize databse, optionally clean the table
+        """
+        engine = create_engine(cls.url())
+        with engine.begin() as conn:
+            conn.execute("CREATE SCHEMA IF NOT EXISTS `%s`" %  (cls.database))
+            conn.execute("USE `%s`" % (cls.database))
+            conn.execute(cls.OFFSET_CREATE_TABLE_QUERY)
+            conn.execute(cls.SALES_CREATE_TABLE_QUERY)
+
+            if clean:
+                for table in cls.TABLES:
+                    conn.execute("TRUNCATE TABLE `%s`" % (table))
+
+    @classmethod
+    def cleanup(cls):
+        """
+        remove tables and schema, useful for writing test cases
+        """
+        engine = create_engine(cls.url())
+
+        with engine.begin() as conn:
+            for table in cls.TABLES:
+                conn.execute("DROP TABLE `%s`" % (table))
+            conn.execute("DROP SCHEMA `%s`" % (cls.database))
+
+
 def _process(timeunit, rdd):
     offsets = rdd.offsetRanges()
     timestr = timeunit.strftime("%Y-%m-%d")
-    url = MysqlSettings.url()
+    url = MysqlUtils.url()
 
     def _process_partition(messages):
         offset = offsets[TaskContext.get().partitionId()]
@@ -105,7 +144,11 @@ def _process(timeunit, rdd):
     # make sure transformation get applied
     rdd.mapPartitions(_process_partition).reduce(lambda x, y: x + y)
 
-class TransStreamingProcessor(object):
+
+class TransSalesStreamProcessor(object):
+    """
+    transactional stream handler
+    """
     def __init__(self, batch_duration, bootstrap_servers, topics, **kwargs):
         # create spark config
         conf = SparkConf().setAppName("sales-stream-processor")
@@ -122,14 +165,14 @@ class TransStreamingProcessor(object):
         self.topics = topics
         self.checkpoint = kwargs.get("checkpoint", None) or CHECKPOINT_PATH
         self.streaming_context = None
-        self.mysql_url = MysqlSettings.url()
 
         if callable(kwargs.get("handler", None)):
             self.handler = kwargs["handler"]
         else:
             self.handler = self._console_handler
 
-        self._setup_database(self.mysql_url)
+        self.mysql_url = MysqlUtils.url()
+        MysqlUtils.init()
 
     @staticmethod
     def _fetch_sales_data(url):
@@ -171,13 +214,6 @@ class TransStreamingProcessor(object):
     def _execute_handler(self):
         self.handler(self._fetch_sales_data(self.mysql_url))
         threading.Timer(self.batch_duration, self._execute_handler).start()
-
-    @staticmethod
-    def _setup_database(url):
-        engine = create_engine(url)
-        with engine.begin() as conn:
-            conn.execute(OFFSET_CREATE_TABLE_QUERY)
-            conn.execute(SALES_CREATE_TABLE_QUERY)
 
     def start_streaming(self, with_await=True):
         """
@@ -274,13 +310,13 @@ def _main():
 
     args = parser.parse_args()
 
-    MysqlSettings.username = args.username
-    MysqlSettings.password = args.password
-    MysqlSettings.database = args.database
-    MysqlSettings.host = args.host
-    MysqlSettings.port = args.port
+    MysqlUtils.username = args.username
+    MysqlUtils.password = args.password
+    MysqlUtils.database = args.database
+    MysqlUtils.host = args.host
+    MysqlUtils.port = args.port
 
-    TransStreamingProcessor(
+    TransSalesStreamProcessor(
         batch_duration=args.batch_duration,
         bootstrap_servers=args.bootstrap_servers,
         topics=args.topics
