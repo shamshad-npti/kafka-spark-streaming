@@ -8,24 +8,31 @@ import unittest
 from datetime import datetime
 from kafka import SimpleClient
 from kafka import KafkaProducer
-from stream.trans_sales_processor import TransSalesStreamProcessor
+from stream.trans_sales_processor import TransSalesStreamProcessor, MysqlUtils
 
 FIXTURE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "fixtures", "data.json")
 
-class TestSalesProcessor(unittest.TestCase):
+class TestTransSalesStreamProcessor(unittest.TestCase):
     """
-    test cases for sales stream processor (at least once semantics)
+    test cases for sales stream processor (exactly once)
     """
     server = "localhost:9092"
     topics = None
 
     def setUp(self):
 
-        ident = datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.checkpoints = ".check-%s" % (ident)
+        ident = datetime.now().strftime("%Y%m%d_%H%M%S")
+        database = "test_{}".format(ident)
+
+        MysqlUtils.database = os.environ.get("mysql.database", database)
+        MysqlUtils.username = os.environ.get("mysql.username", "marker")
+        MysqlUtils.password = os.environ.get("mysql.password", "marker-secure")
+        MysqlUtils.host = os.environ.get("mysql.host", "localhost")
+        MysqlUtils.port = os.environ.get("mysql.port", "3306")
+
         if self.topics is None:
-            self.topics = "test-topic-%s" % (ident)
+            self.topics = "test_topic_%s" % (ident)
 
         self.client = SimpleClient(self.server)
         self.client.ensure_topic_exists(self.topics)
@@ -34,19 +41,17 @@ class TestSalesProcessor(unittest.TestCase):
             batch_duration=5,
             bootstrap_servers="localhost:9092",
             topics=[self.topics],
-            checkpoint=self.checkpoints
         )
 
         with open(FIXTURE_PATH) as data:
             self.messages = json.load(data)
 
     def test_streaming(self):
-        result = [None]
+        result = [()]
 
-        def message_handler(rdd):
-            data = rdd.collect()
-            if len(data) == 1:
-                result[0] = data[0]
+        def message_handler(data):
+            if isinstance(data, list):
+                result[0] = data
 
         self.stream_processor.handler = message_handler
 
@@ -68,11 +73,11 @@ class TestSalesProcessor(unittest.TestCase):
             1: 1100.0,
             2: 600.0
         }
-        actual = {row["store_id"]: row["total_sales_price"] for row in json.loads(result[0])}
+
+        actual = {row["store_id"]: row["total_sales_price"] for row in result[0]}
 
         self.assertDictEqual(expected, actual)
 
     def tearDown(self):
-        if self.stream_processor.streaming_context:
-            self.stream_processor.streaming_context.stop()
-        self.stream_processor.spark_context.stop()
+        self.stream_processor.stop()
+        MysqlUtils.cleanup()

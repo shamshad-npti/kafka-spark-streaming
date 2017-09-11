@@ -81,7 +81,7 @@ class MysqlUtils(object):
         """
         initialize databse, optionally clean the table
         """
-        engine = create_engine(cls.url())
+        engine = create_engine(cls.url(with_database=False))
         with engine.begin() as conn:
             conn.execute("CREATE SCHEMA IF NOT EXISTS `%s`" %  (cls.database))
             conn.execute("USE `%s`" % (cls.database))
@@ -172,6 +172,7 @@ class TransSalesStreamProcessor(object):
             self.handler = self._console_handler
 
         self.mysql_url = MysqlUtils.url()
+        self.__stopped = False
         MysqlUtils.init()
 
     @staticmethod
@@ -212,8 +213,9 @@ class TransSalesStreamProcessor(object):
             print json.dumps(result, indent=2)
 
     def _execute_handler(self):
-        self.handler(self._fetch_sales_data(self.mysql_url))
-        threading.Timer(self.batch_duration, self._execute_handler).start()
+        if not self.__stopped:
+            self.handler(self._fetch_sales_data(self.mysql_url))
+            threading.Timer(self.batch_duration, self._execute_handler).start()
 
     def start_streaming(self, with_await=True):
         """
@@ -227,6 +229,15 @@ class TransSalesStreamProcessor(object):
         self.streaming_context.start()
         if with_await:
             self.streaming_context.awaitTermination()
+
+    def stop(self):
+        """
+        stop streaming
+        """
+        self.__stopped = True
+        if self.streaming_context:
+            self.streaming_context.stop()
+        self.spark_context.stop()
 
     def _setup_streaming(self):
         streaming_context = StreamingContext(self.spark_context, self.batch_duration)

@@ -1,16 +1,22 @@
-import unittest
+"""
+Test processor
+"""
 import json
-import time
 import os
+import time
+import unittest
+from datetime import datetime
 from kafka import SimpleClient
 from kafka import KafkaProducer
-from datetime import datetime
 from stream.sales_stream_processor import StreamingProcessor
 
 FIXTURE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "fixtures", "data.json")
 
 class TestSalesProcessor(unittest.TestCase):
+    """
+    test cases sales processor
+    """
     server = "localhost:9092"
     topics = None
 
