@@ -38,7 +38,7 @@ class TestTransSalesStreamProcessor(unittest.TestCase):
         self.client.ensure_topic_exists(self.topics)
 
         self.stream_processor = TransSalesStreamProcessor(
-            batch_duration=5,
+            batch_duration=1,
             bootstrap_servers="localhost:9092",
             topics=[self.topics],
         )
@@ -67,7 +67,7 @@ class TestTransSalesStreamProcessor(unittest.TestCase):
         for message in self.messages:
             producer.send(self.topics, message)
 
-        time.sleep(8)
+        time.sleep(2)
 
         expected = {
             1: 1100.0,
