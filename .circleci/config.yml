@@ -6,7 +6,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: skramer/kafka-spark-mysql-testing
+      - image: skramer/kafka-spark-mysql-testing:1.0
       
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
