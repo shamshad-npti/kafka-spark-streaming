@@ -1,3 +1,6 @@
+[![CircleCI](https://circleci.com/gh/shamshad-npti/kafka-spark-streaming.svg?style=svg)](https://circleci.com/gh/shamshad-npti/kafka-spark-streaming)
+[![Coverage Status](https://coveralls.io/repos/github/shamshad-npti/kafka-spark-streaming/badge.svg?branch=master)](https://coveralls.io/github/shamshad-npti/kafka-spark-streaming?branch=master)
+
 Stream Processing of Sales Order
 ---
 
