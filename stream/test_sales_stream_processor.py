@@ -58,12 +58,12 @@ class TestSalesProcessor(unittest.TestCase):
             value_serializer=lambda message: json.dumps(message).encode("utf-8")
         )
 
-        time.sleep(2)
+        time.sleep(5)
 
         for message in self.messages:
             producer.send(self.topics, message)
 
-        time.sleep(2)
+        time.sleep(5)
 
         expected = {
             1: 1100.0,
