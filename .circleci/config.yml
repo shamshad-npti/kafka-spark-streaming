@@ -44,6 +44,8 @@ jobs:
             . venv/bin/activate
             export PYTHONPATH=$PYTHONPATH:`pwd`
             bash /usr/local/bin/init.sh
+            bash $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
+            bash $KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties
             nosetests --with-coverage -vv --cover-package=stream
             COVERALLS_REPO_TOKEN=${COVERALLS_REPO_TOKEN} coveralls
       - store_artifacts:
