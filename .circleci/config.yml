@@ -42,7 +42,8 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            export PYTHONPATH=`pwd`
+            export PYTHONPATH=$PYTHONPATH:`pwd`
+            bash /usr/local/bin/init.sh
             nosetests --with-coverage -vv --cover-package=stream
             COVERALLS_REPO_TOKEN=${COVERALLS_REPO_TOKEN} coveralls
       - store_artifacts:
