@@ -1,5 +1,3 @@
-# Dockerfile for testing, the image is pushed here: skramer/kafka-spark-mysql-testing
-
 FROM debian:jessie
 
 WORKDIR /app
@@ -45,11 +43,24 @@ RUN wget http://www-eu.apache.org/dist/kafka/0.11.0.0/kafka_2.11-0.11.0.0.tgz \
 	&& mv kafka_2.11-0.11.0.0 kafka_2.11 \
 	&& rm kafka_2.11-0.11.0.0.tgz
 
-RUN wget https://d3kbcqa49mib13.cloudfront.net/spark-2.0.2-bin-hadoop2.7.tgz \
-	&& tar -xzvf spark-2.0.2-bin-hadoop2.7.tgz \
-	&& mv spark-2.0.2-bin-hadoop2.7 spark-2.0.2 \
-	&& rm spark-2.0.2-bin-hadoop2.7.tgz
+RUN wget https://d3kbcqa49mib13.cloudfront.net/spark-2.2.0-bin-hadoop2.7.tgz \
+	&& tar -xzvf spark-2.2.0-bin-hadoop2.7.tgz \
+	&& mv spark-2.2.0-bin-hadoop2.7 spark-2.0.2 \
+	&& rm spark-2.2.0-bin-hadoop2.7.tgz
+
+ENV SPARK_HOME="/app/spark-2.0.2"
+ENV KAFKA_JAR="spark-streaming-kafka-0-8-assembly_2.11-2.0.0-preview.jar"
+
+ADD http://central.maven.org/maven2/org/apache/spark/spark-streaming-kafka-0-8-assembly_2.11/2.0.0-preview/$KAFKA_JAR \
+	$SPARK_HOME/custom-jars/
+
+RUN { \
+	echo "spark.driver.extraClassPath     $SPARK_HOME/custom-jars/$KAFKA_JAR"; \
+	echo "spark.executor.extraClassPath   $SPARK_HOME/custom-jars/$KAFKA_JAR"; \
+} > $SPARK_HOME/conf/spark-defaults.conf
+
+RUN apt-get install -y python python-pip python-dev libmysqlclient-dev
 
 COPY ./init.sh /usr/local/bin/
 
-CMD ["/bin/bash", "/usr/local/bin/init.sh"]
+ENTRYPOINT bash /usr/local/bin/init.sh && bash
