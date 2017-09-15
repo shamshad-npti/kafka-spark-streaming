@@ -1,44 +1,53 @@
 [
-	{
-		"store_id": 1,
-		"customer_id": 1,
-		"receipt_id": 1,
-		"items": [{
-			"item_id": 1,
-			"quantity": 1,
-			"total_price_paid": 100.0
-		}, {
-			"item_id": 2,
-			"quantity": 1,
-			"total_price_paid": 200.0
-		}]
-	},
-	{
-		"store_id": 2,
-		"customer_id": 1,
-		"receipt_id": 1,
-		"items": [{
-			"item_id": 1,
-			"quantity": 1,
-			"total_price_paid": 200.0
-		}, {
-			"item_id": 2,
-			"quantity": 1,
-			"total_price_paid": 400.0
-		}]
-	},
-	{
-		"store_id": 1,
-		"customer_id": 1,
-		"receipt_id": 1,
-		"items": [{
-			"item_id": 1,
-			"quantity": 1,
-			"total_price_paid": 300.0
-		}, {
-			"item_id": 2,
-			"quantity": 1,
-			"total_price_paid": 500.0
-		}]
-	}
+  {
+    "store_id": 1,
+    "customer_id": 1,
+    "receipt_id": 1,
+    "items": [
+      {
+        "item_id": 1,
+        "quantity": 1,
+        "total_price_paid": 100.0
+      },
+      {
+        "item_id": 2,
+        "quantity": 1,
+        "total_price_paid": 200.0
+      }
+    ]
+  },
+  {
+    "store_id": 2,
+    "customer_id": 1,
+    "receipt_id": 1,
+    "items": [
+      {
+        "item_id": 1,
+        "quantity": 1,
+        "total_price_paid": 200.0
+      },
+      {
+        "item_id": 2,
+        "quantity": 1,
+        "total_price_paid": 400.0
+      }
+    ]
+  },
+  {
+    "store_id": 1,
+    "customer_id": 1,
+    "receipt_id": 1,
+    "items": [
+      {
+        "item_id": 1,
+        "quantity": 1,
+        "total_price_paid": 300.0
+      },
+      {
+        "item_id": 2,
+        "quantity": 1,
+        "total_price_paid": 500.0
+      }
+    ]
+  }
 ]
